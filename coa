@@ -1,0 +1,303 @@
+<?php
+defined('BASEPATH') OR exit('No direct script access allowed');
+
+class Chartofaccounts extends CI_Controller {
+
+	public function __construct()
+	{
+		parent::__construct();
+		if ( ! $this->session->userdata('logged_in')){
+			redirect('login');
+		}
+		$this->load->model('general_model');
+		$this->load->model('chartofaccounts_model');
+	}
+
+
+	public function index()
+	{
+
+
+    $page = 'chartofaccounts';
+    if ( ! file_exists(APPPATH.'views/chartofaccounts/'.$page.'.php'))
+        {
+                // Whoops, we don't have a page for that!
+                show_404();
+        }
+
+         $data['title'] = ucfirst($page); // Capitalize the first letter
+
+         $data['breadcrumbs_data'] =  '<li><a href="'.site_url('settings').'">Transactions</a></li><li class="active">chartofaccounts List</li>';
+
+         $data['breadcrumbs'] = $this->load->view('templates/breadcrumbs', $data, TRUE);
+
+         // get data
+		 $data['sidebar_cash'] = $this->general_model->get_sidebar_cash();
+          $data['sidebar_banks'] = $this->general_model->get_sidebar_banks();
+          $data['sidebar_payment_gateway'] = $this->general_model->get_sidebar_payment_gateway();
+          $data['sidebar_creditcards'] = $this->general_model->get_sidebar_creditcards();
+          $data['HeadList'] = $this->general_model->get_any_data('subcategories');
+
+         $this->load->view('templates/header_add', $data);
+         $this->load->view('templates/sidebar', $data);
+         $this->load->view('chartofaccounts/'.$page, $data);
+         $this->load->view('templates/footer_add', $data);
+  
+		
+	
+	
+
+	}
+
+    public function add()
+    {
+
+    $page = 'add';
+    if ( ! file_exists(APPPATH.'views/chartofaccounts/'.$page.'.php'))
+        {
+                // Whoops, we don't have a page for that!
+                show_404();
+        }
+
+         $data['title'] = ucfirst($page); // Capitalize the first letter
+
+         $data['breadcrumbs_data'] =  '<li><a href="'.site_url('chartofaccounts').'">Chart of Accounts</a></li><li class="active">Add New</li>';
+
+         $data['breadcrumbs'] = $this->load->view('templates/breadcrumbs', $data, TRUE);
+
+         // get data
+		 $data['sidebar_cash'] = $this->general_model->get_sidebar_cash();
+        $data['sidebar_banks'] = $this->general_model->get_sidebar_banks();
+        $data['sidebar_payment_gateway'] = $this->general_model->get_sidebar_payment_gateway();
+        $data['sidebar_creditcards'] = $this->general_model->get_sidebar_creditcards();
+        $data['CurrencyList'] = $this->currency_model->getCurrenciesList();
+		
+		$data['maincategories'] = $this->db->order_by('CategoryName', 'ASC')->get("maincategories")->result_array();
+		  
+		//$data['subcategories'] = $this->general_model->get_subcategories();
+		foreach($data['maincategories'] as $key=>$value){
+			$subcategories = $this->db->order_by('SubCatName', 'ASC')->where("CatId",$value["Id"])->get("subcategories")->result_array();
+		  	$data['maincategories'][$key]["subcategories"] = $subcategories;
+		}
+		  
+        $this->load->view('templates/header_add', $data);
+        $this->load->view('templates/sidebar', $data);
+        $this->load->view('chartofaccounts/'.$page, $data);
+        $this->load->view('templates/footer_add', $data);
+  
+    }
+
+	public function myformAjax() { 
+		if(isset($_POST['p_id']))
+		{
+			$id = $_POST['p_id'];
+			$result = $this->db->where("subcat_id",$id)->get("category_types")->result();
+
+       		echo json_encode($result);
+		}
+   	}
+	
+	public function get_subcat_id() { 
+		if(isset($_POST['p_id']))
+		{
+			$id = $_POST['p_id'];
+			$result = $this->db->where("Id",$id)->get("category_types")->row_array();
+			echo $result["subcat_id"];
+		}
+   	}
+
+    function add_submit()
+    {
+
+      
+
+     $this->form_validation->set_rules('sub_cat_id','sub_cat_id','required');
+      $this->form_validation->set_rules('acc_name','acc_name','required');
+     
+
+       if ($this->form_validation->run() == FALSE)
+        {
+
+            $validate='0';
+            $status_message=('<div class="box-body">
+                 
+                  <div class="alert alert-danger alert-dismissable">
+                    <button type="button" class="close" data-dismiss="alert" aria-hidden="true">×</button>
+                    <h4><i class="icon fa fa-check"></i> Error !</h4>'.validation_errors().'
+                   
+                  </div>
+                </div>');
+
+        }else{
+          $return = $this->chartofaccounts_model->addSubmit();
+          if($return)
+          {
+            $validate='1';
+             $status_message=('<div class="box-body">
+                 
+                  <div class="alert alert-success alert-dismissable">
+                    <button type="button" class="close" data-dismiss="alert" aria-hidden="true">×</button>
+                    <h4>    <i class="icon fa fa-check"></i> Success !</h4>Data Has Been Saved Successfully  
+
+                   </h4>                   
+                  </div>
+                </div>');
+
+          }else{
+             $validate='0';
+            $status_message=('<div class="box-body">
+                 
+                  <div class="alert alert-danger alert-dismissable">
+                    <button type="button" class="close" data-dismiss="alert" aria-hidden="true">×</button>
+                    <h4><i class="icon fa fa-check"></i> Error !</h4>Error Occured! Try again later.
+                   
+                  </div>
+                </div>');
+          }
+        }
+        header('Content-Type: application/json');
+        echo  json_encode(array('validate'=>$validate,'status_message'=>$status_message));
+   
+
+  
+    }
+    function chartofaccounts_list()
+    {
+
+  //  $aColumns = array(
+    //            't2.Acc_Name','t2.Cat_Type','t2.Sub_Cat','t2.Acc_Currency','t2.Acc_Balance','1','t2.AccountId',
+      //          );
+
+    $aColumns = array(
+                'Acc_Name','Cat_Type','Sub_Cat','Acc_Currency','Acc_Balance','1','AccountId',
+                );
+        
+        $sTable = 'view_chartofaccounts';
+        
+        
+        $iDisplayStart = $this->input->get_post('iDisplayStart', true);
+        $iDisplayLength = $this->input->get_post('iDisplayLength', true);
+        $iSortCol_0 = $this->input->get_post('iSortCol_0', true);
+        $iSortingCols = $this->input->get_post('iSortingCols', true);
+        $sSearch = $this->input->get_post('sSearch', true);
+        $sEcho = $this->input->get_post('sEcho', true);
+        
+        // Paging
+        if(isset($iDisplayStart) && $iDisplayLength != '-1')
+        {
+            $this->db->limit($this->db->escape_str($iDisplayLength), $this->db->escape_str($iDisplayStart));
+        }
+        
+        // Ordering
+        if(isset($iSortCol_0))
+        {
+            for($i=0; $i<intval($iSortingCols); $i++)
+            {
+                $iSortCol = $this->input->get_post('iSortCol_'.$i, true);
+                $bSortable = $this->input->get_post('bSortable_'.intval($iSortCol), true);
+                $sSortDir = $this->input->get_post('sSortDir_'.$i, true);
+                
+                if($bSortable == 'true')
+                {
+                    $this->db->order_by($aColumns[intval($this->db->escape_str($iSortCol))], $this->db->escape_str($sSortDir));
+                }
+            }
+        }
+        
+        /*
+         * Filtering
+         * NOTE this does not match the built-in DataTables filtering which does it
+         * word by word on any field. It's possible to do here, but concerned about efficiency
+         * on very large tables, and MySQL's regex functionality is very limited
+         */
+        $check=get_company_permission();
+        $sWhere = "";
+        if(isset($sSearch) && !empty($sSearch)){
+        $sWhere = " (";
+        for ( $i=0 ; $i<count($aColumns) ; $i++ ) {
+            $sWhere .= $aColumns[$i]." LIKE '%".addslashes( $sSearch )."%' OR ";
+        }
+        $sWhere = substr_replace( $sWhere, "", -3 );
+        $sWhere .= ')';
+        }else{
+          $sWhere = "(1=1)";
+        }
+
+         $sWhere .=$check;
+
+         //echo $sWhere;
+
+        
+
+         $this->db->where($sWhere);
+        //$this->db->where('CompanyId', $this->session->userdata('logged_in')['CompanyId']);
+        
+
+         //$this->db->from("users AS t1");
+         //$this->db->join("view_chartofaccounts AS t2", "t2.CompanyId=t1.CompanyId");
+
+        $this->db->select('SQL_CALC_FOUND_ROWS '.str_replace(' , ', ' ', implode(', ', $aColumns)), false);
+        
+        //$this->db->where('CompanyId', $this->session->userdata('logged_in')['CompanyId']);
+        
+        $rResult = $this->db->get($sTable);
+
+        // echo $this->db->last_query();
+        
+        // Data set length after filtering
+        $this->db->select('FOUND_ROWS() AS found_rows');
+        
+        
+        $iFilteredTotal = $this->db->get()->row()->found_rows;
+        
+        // Total data set length
+        $iTotal = $this->db->count_all($sTable);
+        
+        // Output
+        $output = array(
+                'sEcho' => intval($sEcho),
+                'iTotalRecords' => $iTotal,
+                'iTotalDisplayRecords' => $iFilteredTotal,
+                'aaData' => array()
+        );
+
+        foreach($rResult->result_array() as $aRow)
+        {
+            $row = array();
+            
+            foreach($aColumns as $col)
+            {
+                
+                
+                if($col == "1")
+                {
+                 if($aRow['Sub_Cat']=="Bank" && !empty($aRow['AccountId'])){
+                    $row[] = '<a href="'.site_url('transaction/bank_transactions/'.$aRow['AccountId']).'" title="Bank" >View</a>';
+                 }elseif($aRow['Sub_Cat']=="Current Liabilities" && !empty($aRow['AccountId'])){
+                    $row[] = '<a href="'.site_url('creditcards/pgt_details?id='.$aRow['AccountId']).'" title="Credit Card" >View</a>';
+                 }elseif($aRow['Sub_Cat']=="Cash and Cash Equivalents" && !empty($aRow['AccountId'])){
+                    $row[] = '<a href="'.site_url('transaction/cash_transactions/'.$aRow['AccountId']).'" title="Cash" >View</a>';
+                 }else{
+                    $row[] = 'View';
+                 }
+                    
+                }elseif($col == "Acc_Balance")
+                {
+                   $row[] = number_format($aRow[$col],2);
+                }
+                else{
+                    $row[] = $aRow[$col];
+                }
+                
+                
+                
+            }
+            
+            $output['aaData'][] = $row;
+            //print_r($output['aaData']);
+        }
+         echo json_encode($output);
+  
+    }
+
+}

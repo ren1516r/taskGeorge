@@ -1,0 +1,29 @@
+ #circle {
+      width: 50px;
+      height: 50px;
+      -webkit-border-radius: 25px;
+      -moz-border-radius: 25px;
+      border-radius: 50px;
+      background: white;
+     border: black 1px solid;
+     margin-top: 5px;
+     
+    }
+#barcode{
+    margin-top: 15px;
+}
+
+#invoice{
+    padding-left: 36%;
+}
+hr{
+    border-color: black;
+}
+
+.sub-bill{
+    padding-left: 1%;
+}
+
+.table>thead>tr{
+    border: 1px solid black;
+}
